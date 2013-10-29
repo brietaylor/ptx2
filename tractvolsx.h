@@ -117,59 +117,57 @@ namespace TRACTVOLSX{
 	fibst=fibst_in;
       }
 
+      // This should really use a switch statement...
       int sample_fibre(int col,int samp,const int& mode=2){
-	if(mode==0){
+	if (mode==0){
 	  return 0;
-	}
-	if(mode==3){//sample all
+	} else if(mode==1) {//sample all>thresh
+          vector<int> fibvec;
+          for (int fib=0; fib < nfibres; fib++) {	    
+            float ft=fsamples[fib](samp,col);
+
+            if(ft>opts.fibthresh.value()){
+              fibvec.push_back(fib);
+            }
+          }
+          if (fibvec.size() == 0) {
+            return 0;
+          } else {
+            float rtmp=(float)rand()/float(RAND_MAX) * float(fibvec.size()-1);
+            return (fibvec[ (int)round(rtmp) ]);
+          }
+        } else if (mode == 2) {//sample all>thresh in proportion of f (default)
+          float fsumtmp=0;
+          for(int fib=0; fib < nfibres; fib++) {	    
+            float ft = fsamples[fib](samp,col);
+
+            if(ft>opts.fibthresh.value()){
+              fsumtmp+=ft;  //count total weight of f in this voxel. 
+            }
+          } 
+          if (fsumtmp==0) {
+            return(0);
+          } else {
+            float ft,fsumtmp2=0;
+            float rtmp=fsumtmp * (float)rand()/float(RAND_MAX);	      
+
+            for(int fib=0;fib<nfibres;fib++){
+              ft=fsamples[fib](samp,col);
+
+              if (ft > opts.fibthresh.value())
+                fsumtmp2 += ft;
+
+              if (rtmp <= fsumtmp2) {
+                return(fib); 
+              }
+            }
+          }
+	} else if(mode==3) {//sample all
 	  return int(round((float)(nfibres-1)*(float)rand()/float(RAND_MAX)));
-	}
-	else{
-	  if(mode==1){//sample all>thresh
-	    vector<int> fibvec;
-	    for(int fib=0;fib<nfibres;fib++){	    
-	      float ft=fsamples[fib](samp,col);
-	      if(ft>opts.fibthresh.value()){
-		fibvec.push_back(fib);
-	      }
-	    }
-	    if(fibvec.size()==0){
-	      return 0;
-	    }
-	    else{
-	      float rtmp=(float)rand()/float(RAND_MAX) * float(fibvec.size()-1);
-	      return (fibvec[ (int)round(rtmp) ]);
-	    }
-	  }
-	  else if(mode==2){//sample all>thresh in proportion of f (default)
-	    float fsumtmp=0;
-	    for(int fib=0;fib<nfibres;fib++){	    
-	      float ft=fsamples[fib](samp,col);
-	      if(ft>opts.fibthresh.value()){
-		fsumtmp+=ft;  //count total weight of f in this voxel. 
-	      }
-	    } 
-	    if(fsumtmp==0){
-	      return(0);
-	    }
-	    else{
-	      float ft,fsumtmp2=0;
-	      float rtmp=fsumtmp * (float)rand()/float(RAND_MAX);	      
-	      for(int fib=0;fib<nfibres;fib++){
-		ft=fsamples[fib](samp,col);
-		if(ft>opts.fibthresh.value())
-		  fsumtmp2 += ft;
-		if(rtmp<=fsumtmp2){
-		  return(fib); 
-		}
-	      }
-	    }
-	  }
-	  else{
-	    cerr<<"TRACTVOLSX::sample_fibre:Error - unknown mode = "<<mode<<endl;
-	    exit(1);
-	  }
-	}
+        } else {
+          cerr<<"TRACTVOLSX::sample_fibre:Error - unknown mode = "<<mode<<endl;
+          exit(1);
+        }
 	return 0;
       }
 
@@ -271,8 +269,8 @@ namespace TRACTVOLSX{
 	int cy =(int) ceil(y),fy=(int) floor(y);
 	int cz =(int) ceil(z),fz=(int) floor(z);
 	
-	float pcx = (cx==fx)?1:(x-fx)/(cx-fx);
-	float pcy = (cy==fy)?1:(y-fy)/(cy-fy);
+	float pcx = (cx==fx)?1:(x-fx)/(cx-fx); // ... Isn't ceil(x)-floor(x) = 1 for all x != floor(x)?
+	float pcy = (cy==fy)?1:(y-fy)/(cy-fy); // ... and pcx->0 as x->floor(x), but then jumps back up to 1?
 	float pcz = (cz==fz)?1:(z-fz)/(cz-fz);
 	
 	newx = ((float)rand()/(float)RAND_MAX)>pcx?fx:cx;
@@ -313,7 +311,10 @@ namespace TRACTVOLSX{
 		prefer_x=r_x;prefer_y=r_y;prefer_z=r_z;
 	      }
 	      int locrule=0;
-	      if(opts.locfibchoice.value()!=""){locrule=locfibchoice(newx,newy,newz);}
+	      if (opts.locfibchoice.value() != "") {
+                locrule = locfibchoice(newx,newy,newz);
+              }
+
 	      if(locrule>0){
 		fibind=sample_fibre(col,samp,1);
 		theta=thsamples[fibind](samp,col);

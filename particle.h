@@ -204,6 +204,9 @@ namespace PARTICLE{
 	float ry_new=sin(phi)*sin(theta);
 	float rz_new=cos(theta);
 	int sign=1; bool init=false;
+        // sim diffusion.  If true, move in random direction.  If false,
+        // continue along the same path.  m_simdiff is *always* false (Particle
+        // is only used in streamlines, which doesn't use this feature.
 	if(!m_simdiff){
 	  if(m_has_jumped){
 	    if(!forcedir){
@@ -216,8 +219,8 @@ namespace PARTICLE{
 	    m_has_jumped=true;
 	    init=true;
 	  }
-	}
-	else{
+	} else {
+          // Never entered
 	  sign=(float)rand()/float(RAND_MAX)>0.5?1:-1;
 	}
 	m_x += sign*m_steplength/m_xdim*rx_new;
